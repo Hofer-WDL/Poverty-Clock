@@ -6,7 +6,7 @@ rm(list=ls())
 
 
 
-load("./ENVIRONMENT_Beta-LC.RDATA")
+load("./Data/merged_surveys.Rdata")
 library(foreign)
 library(plyr)
 library(tidyr)
@@ -43,16 +43,20 @@ library(data.table)
                                
 
 
- fun.set.anchor <- function(anchor,dataset = data){
-   x <- subset(dataset,select = paste0(anchor,2012:2021))
-   names(x) <- paste0("anchor.",2012:2021)
-   data <- cbind(data,x)}
 
- 
- 
  #########################################################
  # Specify desired mean-anchor (GDP/Capita or Survey Mean)
  ######################################################### 
+                               
+ fun.set.anchor <- function(anchor,dataset = data){
+   # get the first and the latest anchor year
+   substrRight <- function(x, n){substr(x, nchar(x)-n+1, nchar(x))}
+   assign("end", as.numeric(     substrRight(names(data)[max(grep(anchor,names(data)))],2)),envir=globalenv())
+   assign("start",as.numeric(     substrRight(names(data)[min(grep(anchor,names(data)))],2)),envir=globalenv() )
+   x <- subset(dataset,select = paste0(anchor,start:end+2000))
+   names(x) <- paste0("anchor.",2012:2021)
+   return(cbind(data,x))}
+ 
  
  # # #GDP/Capita
  # data <- fun.set.anchor("gdp.capita.",data)
@@ -71,9 +75,7 @@ library(data.table)
 #                           Start of Analysis                                        #
 #------------------------------------------------------------------------------------#
 
-# get the first and the latest anchor year
-end   <- as.numeric(substr(names(data)[max(grep("anchor.",names(data)))],10,11))
-start <- as.numeric(substr(names(data)[min(grep("anchor.",names(data)))],10,11))
+
 
 # Poverty Headcounts
 
