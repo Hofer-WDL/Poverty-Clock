@@ -6,7 +6,7 @@ rm(list=ls())
 
 
 
-load("./Data/merged_surveys.Rdata")
+load("./ENVIRONMENT_Beta-LC.RDATA")
 library(foreign)
 library(plyr)
 library(tidyr)
@@ -54,7 +54,7 @@ library(data.table)
    assign("end", as.numeric( substrRight(names(data)[max(grep(anchor,names(data)))],2)),envir=globalenv())
    assign("start",as.numeric( substrRight(names(data)[min(grep(anchor,names(data)))],2)),envir=globalenv() )
    x <- subset(dataset,select = paste0(anchor,start:end+2000))
-   names(x) <- paste0("anchor.",2012:2021)
+   names(x) <- paste0("anchor.",start:end+2000)
    return(cbind(data,x))}
  
  
