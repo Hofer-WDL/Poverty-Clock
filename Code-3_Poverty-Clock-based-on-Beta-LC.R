@@ -51,8 +51,8 @@ library(data.table)
  fun.set.anchor <- function(anchor,dataset = data){
    # get the first and the latest anchor year
    substrRight <- function(x, n){substr(x, nchar(x)-n+1, nchar(x))}
-   assign("end", as.numeric(     substrRight(names(data)[max(grep(anchor,names(data)))],2)),envir=globalenv())
-   assign("start",as.numeric(     substrRight(names(data)[min(grep(anchor,names(data)))],2)),envir=globalenv() )
+   assign("end", as.numeric( substrRight(names(data)[max(grep(anchor,names(data)))],2)),envir=globalenv())
+   assign("start",as.numeric( substrRight(names(data)[min(grep(anchor,names(data)))],2)),envir=globalenv() )
    x <- subset(dataset,select = paste0(anchor,start:end+2000))
    names(x) <- paste0("anchor.",2012:2021)
    return(cbind(data,x))}
