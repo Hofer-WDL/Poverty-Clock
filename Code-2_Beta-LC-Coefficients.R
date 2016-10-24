@@ -104,17 +104,17 @@ evaluate <- function(t,g,d){
   return(data.frame(cond_3,cond_4))}
 
 
-
-a <- data.frame(ccode = data$country,evaluate(t = data$theta, g =  data$gamma, d = data$delta))
-a <- a[!duplicated(a$ccode),]
-b <- (a[!a$cond_4,])
 require(countrycode)
-b$ccode <- countrycode(b$ccode,"iso3c","country.name")
+a <- data.frame(ccode = data$country,cname = countrycode(data$country,"iso3c","country.name"),evaluate(t = data$theta, g =  data$gamma, d = data$delta))
+a <- a[!duplicated(a$ccode),]
+invalid_beta <- (a[!a$cond_4,])
+
 
 
 L_dd(seq(0.01,0.99,by=0.01),t = data$theta[816], g =  data$gamma[816], d = data$delta[816])
 plot(L(seq(0.01,0.99,by=0.01),t = data$theta[816], g =  data$gamma[816], d = data$delta[816]))
 
+rm(list = setdiff(ls(),c("data","invalid_beta")))
 # SAVE------------------------------------------------------------------------------------
 save.image("./ENVIRONMENT_Beta-LC.RData")
 #-----------------------------------------------------------------------------------------

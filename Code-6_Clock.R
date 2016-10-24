@@ -11,27 +11,40 @@ require(lubridate)
 
 t$ccode <- as.character(t$ccode)
 
+t <- subset(t,t$variable %in% c("hc","pop"))
 
+#groups contains information on the relative share of men/women/children for various years. --> subset down to what we need
 groups <- subset(groups,year %in% t$year & ccode %in% (t$ccode))
+#melt the data this way we can just rowbind it to the HC dataset
 groups <- melt(groups,c("ccode","country","year"))
 
 t <- rbind(t,groups)
 
+t$variable <- droplevels(t$variable)
 
-###########Spline
-w <- t%>%  unite(ID, variable,year) %>%spread(ID, value)  # wide format in comparrison to t ... tall format
+#This is the Dataframe I've sent you
+write.csv2(t,"Output/pc.csv",row.names = F)
+read.csv("output/pc.csv",sep=";",header = T,na.strings = "NA")
 
+######################################################
+######################################################
+#Spline
+######################################################
+######################################################
+
+# store the data also in wide format in comparrison to t ... tall format
+w <- t%>%  unite(ID, variable,year) %>%spread(ID, value)  
+
+# empty list where we can write our spline functions into using a loop the elements will be in the same order as the countries in "w"
 splines <- list()
-
-
 
 for(i in 1: nrow(w))  {
     input <- subset(t,ccode == w$ccode[i] & year %in% 2012:2030 & variable =="hc")
-    input <- input[order(input$year),]
-
-    input$year <- as.POSIXct(paste(input$year , '07', '01' , '12:00:00'), format='%Y %m %d %H:%M:%S')
-    
-        #ERROR HANDLING
+    input <- input[order(input$year),]#just to be sure the years are in order
+    #transform the year column into time and define each year value as it occured on july 2nd the midpoint of a year barring leapyears
+    #in the northern hemisphere the midpoint is a 13:00 and in the southern it is at 11:00 since it won't matter in the long run we chose the midpoint 12:00. The math would change for leapyears, but again compared to other inaccuracies this one is only minor
+    input$year <- as.POSIXct(paste(input$year , '07', '02' , '12:00:00'), format='%Y %m %d %H:%M:%S')
+        #ERROR HANDLING: if the splinefunction would not work write a function that only returns NAs
     possibleError <- tryCatch(  splinefun(input$year,input$value, method="fmm",  ties = mean) ,
     error=function(e) e )
   if(inherits(possibleError, "error")) {splines[[i]] <- function(y){rep(NA,length(y))};next} # write a function that only returns NA
@@ -41,18 +54,10 @@ for(i in 1: nrow(w))  {
 }  #end for
 rm(input)
 
+#only for testing this can be dropped
+splines[[34]](as.POSIXct("2012-07-02 12:00:00")) == subset(t,ccode=="CHN" & year == 2012 & variable == "hc",value)
 splines[[34]](as.POSIXct("2012-07-01 12:00:00"))
-splines[[34]](as.POSIXct("2012-07-02 12:00:00"))
 
-splines[[2]](Sys.time())
-
-a <- seq(as.POSIXct("2012-10-10 12:00:00") , as.POSIXct("2021-10-10 12:00:00"),length.out = 1000)
-
-plot(splines[[34]](a))
-plot(diff(splines[[34]](a)))
-##############################################################################################################################
-##############################################################################################################################
-##############################################################################################################################
 
 
 clock <- function(day){
@@ -62,7 +67,7 @@ clock <- function(day){
   # yesterday <- today  - 548 * 24 * 60^2 
   # tomorrow <- today   + 548 * 24 * 60^2
   diff <- as.numeric(tomorrow - yesterday) # how many days are in between 
-  sgd.end   <- as.POSIXct("2030-12-31 00:00:00", format='%Y-%m-%d %H:%M:%S')  # start of the sgds
+  sgd.end   <- as.POSIXct("2030-12-31 23:59:59", format='%Y-%m-%d %H:%M:%S')  # start of the sgds
   sgd.start <- as.POSIXct("2015-01-01 00:00:00", format='%Y-%m-%d %H:%M:%S')  # end of the sgds
   sgd.duration <- as.numeric(sgd.end - sgd.start)  # days betwwen the start ant the end of the sgds
   year <- format(today,'%Y')
@@ -114,7 +119,7 @@ clock <- function(day){
   
   output <- data.frame(apply(data.frame(hc.yesterday,hc.today,hc.tomorrow,daily_change,daily_change_m.a ,daily_change_m.k, daily_change_f.a, daily_change_f.k,daily_target),2,round,0),  daily_track)
   
-  output2 <-  data.frame(hc.today,sgd_prediction,daily_change,daily_change_m.a ,daily_change_m.k, daily_change_f.a, daily_change_f.k,daily_target, daily_track)
+  output2 <-  data.frame(ccode = w$ccode, country = w$country,hc.today,sgd_prediction,daily_change,daily_change_m.a ,daily_change_m.k, daily_change_f.a, daily_change_f.k,daily_target, daily_track)
   #output[no_pov,c("hc.yesterday","hc.today","hc.tomorrow","daily_change","daily_target")] <- 0
   output2}
 
@@ -123,13 +128,14 @@ clock <- function(day){
 ptm <- Sys.time()
 clock(Sys.time())
 ptm - Sys.time()
-View(cbind(w$country,clock(Sys.time())))
+
+head(clock(Sys.time()))
 
 #total poverty at this second in millions
 sum(clock(Sys.time())[,2],na.rm = T)/10e5
 
 require(xlsx)
 
-write.xlsx2(cbind(w$country,clock( "2016-10-13 10:00:00 CEST" )),file = "maria.xlsx")
+write.xlsx2(cbind(w$country,clock( "2016-10-13 10:00:00 CEST" )),file = "Output/maria.xlsx")
 
  round(as.numeric(clock("2016-07-01 12:00:00 CEST")[,2])-w$hc_2016,1) # differences come from leap years and the fact that clock() does round 

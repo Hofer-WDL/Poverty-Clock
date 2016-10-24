@@ -55,7 +55,7 @@ GQL$GQL<-(-1/2)*(                                      # (-1/2)*(
 
 
 GQL<-subset(GQL, select=c("TID","GQL"))
-NAs<-subset(data, is.na(data$inc.share), select=c("TID","inc.share"))
+NAs<-data[is.na(data$inc.share),c("TID","inc.share")]
 colnames(NAs)<-c("TID", "GQL"); GQL<-rbind(GQL,NAs)
 GQL<-GQL[order(GQL[,1], GQL[,2]),]; data<-data[order(data[,1], data[,6]),]
 
