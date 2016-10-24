@@ -89,7 +89,7 @@ x$country=(substr(x$TID, 1,3)); x$year=as.numeric(substr(x$TID,5,8))
 
 x <- x[order(x$country, -abs(x$year)),]
 x <- x[!duplicated(x$country),]
-
+x <- x[complete.cases(x),]
 
 require(countrycode)
 countrycode(x[is.na(x$anchor.2012),"country"],"iso3c","country.name")
@@ -157,10 +157,11 @@ fun.pov.gap.GQL  <- function(H,b,e,m,n,mean,z){H - (mean/z)*
 pop <- ( subset(x,select = c("country",paste0("pop.",start:end))))
 
 
-income <- sort(c(1.9,11,110))
-#income <- seq(1,200,by = 1 )
+income <- c(1.9,11,30,50,70,90,110)
+#income <- (c(seq(1,200,by = 0.1 ),1.9))
 require(countrycode)
 
+income <- sort(unique(income))
 index <- list(country = data.frame(ccode=substr(x$TID,1,3),
                                    cname=countrycode(substr(x$TID,1,3), "iso3c","country.name")),
               time=2000+start:end,
@@ -226,53 +227,107 @@ for(k in 1:length(income)){
 
 
 
-
 #multiply every entry of HC_index with every respective entry of the population matrix
+#this probably works with only one apply as well if one replaces "beta" and "GDL" with empty
 b[,,,"HC","beta"] <- apply(b[,,,"HC_index","beta"],3,function(x) x *as.matrix( pop[,-1]) )
 b[,,,"HC","GQL"]  <- apply(b[,,,"HC_index","GQL"] ,3,function(x) x *as.matrix( pop[,-1]) )
 
 # 1- poverty gap index*threshold is the avg income below the threshold
 # mean expenditrue * HC = total expenditure of ppl below the threshold
-for (l in 1: length(index[[5]])){
+for (l in 1: length(index[["LC_type"]])){
   for(k in 1: length(index[[3]])) {
-  b[,,k,"Mean_exp",l]  <- (1-b[,,k,2,l]) *index[[3]][k]
-  b[,,k,"Total_exp",l] <- b[,,k,"HC",l] * b[,,k,"Mean_exp",1]   }}
-
-b["ZWE",,,"Mean_exp",2]
+  b[,,k,"Mean_exp",l]  <- (1-b[,,k,"Pov_gap_index",l]) *index[[3]][k]
+  b[,,k,"Total_exp",l] <- b[,,k,"HC",l] * b[,,k,"Mean_exp",l]   }}
 
 
+b["ZWE",,,"Mean_exp","GQL"]
+
+
+
+
+##########Find NAs
+miss <- is.na(b)
+
+dim(miss)
+apply(miss[,,,,],5,any)
+
+apply(miss[,,,,"beta"],4,any)
+apply(miss[,,,,"GQL"],4,any)
+
+apply(miss[,,,"Total_exp","beta"],3,any)
+#apply(miss[,,,"Total_exp","GQL"],3,any)
+
+dimnames(miss)[[1]][apply(miss[,,"1.9","HC_index","beta"],1,any)]
+dimnames(miss)[[1]][apply(miss[,,"1.9","Total_exp","beta"],1,any)]
+dimnames(miss)[[1]][apply(miss[,,"11","Total_exp","beta"],1,any)]
+dimnames(miss)[[1]][apply(miss[,,"11","Total_exp","beta"],1,any)]
+
+
+
+####### Choose GQL or betaL
+
+#The beta LC is the baseline
 selected <- as.array(b[,,,,"beta"])
-for(i in 1:nrow(meanlist)){if (any(is.na(selected[i,,,"HC_index"]))){selected[i,,,] <- b[i,,,,"GQL"]  }  }
+flag <- data.frame(ccode = dimnames(b)$country,lc_type = "beta",stringsAsFactors = F)
 
-# i="CHN"
-# if (any(is.na(selected[i,,,"HC_index"]))){selected[i,,,"HC_index"] <- b[i,,,"HC_index","GQL"]  } 
+#From Code-2_Beta-LC-Coefficients we know of some beta LC that are invalid
+inval <- dimnames(selected)[[1]][(dimnames(selected)[[1]] %in% invalid_beta$ccode)]
+selected[inval,,,] <- b[inval,,,,"GQL"]
+flag$lc_type[flag$ccode %in% inval] <- "GQ"
 
-selected["CHN",,,"HC_index"]
-selected["CHN",,,"Pov_gap_index"]
-
-#View(round(b[,"2012","1.9","HC_index",]*100,2))
-
-
-
-############ Validity
-
-val <- data.frame(index[[1]],X2 = apply(b[,,"1.9","Mean_exp",1]<=1.9,1,any))
-
-#View(data.frame(b[,,"2","Mean_exp",1]))
+#There might be still countries for which we didn't find roots
+miss <- is.na(selected)
+dimnames(miss)[[1]][apply(miss[,,"1.9","HC_index"],1,any)]
 
 
-b <- as.array(selected)
-pdf <- list(b,pop)
+# Every country where there are still NA's use the more robust GQL
+for(i in 1:nrow(meanlist)){if (any(is.na(selected[i,,,]))){
+  selected[i,,,] <- b[i,,,,"GQL"]
+  flag$lc_type[i] <- "GQ"}  }
+
+#are there still NAs?
+any(is.na(selected))
 
 
-save(pdf,file = "pdf.RData")
+
+###############################################################
+# Add upper end of the PDF
+###############################################################
+require(abind)
+upper <- array(NA,dim = dim( selected[,,1,]),dimnames = dimnames(selected[,,1,]))
+lower <- array(0 ,dim = dim( selected[,,1,]),dimnames = dimnames(selected[,,1,]))
+#prepare the population dataset to be binded to the array
+sub_pop <- pop
+names(sub_pop)[-1] <- paste0(20,substr(names(sub_pop)[-1],5,6))
+#assure that the orders match
+sub_pop <- sub_pop[ match(dimnames(upper)$country ,pop$country),  match(dimnames(upper)$time ,names(sub_pop)) ]
+#name the dimensions
+dimnames(sub_pop) <- dimnames(upper)[-3]
+
+upper[,,"HC_index"] <- 1
+upper[,,"HC"] <- as.matrix(sub_pop)
+upper[,,"Mean_exp"] <- as.matrix(meanlist)/365
+upper[,,"Total_exp"] <- upper[,,"Mean_exp"]*upper[,,"HC"]
+
+
+#actually bind them together along the third dimension (income_level)
+dim(upper)
+dim(lower)
+ID <- dimnames(selected)
+ID$income_level <- c(0,ID$income_level,"INF")
+selected <- abind("0" = lower,selected, INF=upper,along = match("income_level",names(dim(selected))),new.names =  ID)
+names(dim(selected)) <- names(ID ) 
+dimnames(selected) <- ID
+
+
+b <- (selected)
+dim(b)
+
+
+
+save(b,file = "pdf.RData")
+save(flag,file="flag_income_LC.RData")
 Sys.time()-ptm
-
-
-
-
-  
-
 
 
 
@@ -280,9 +335,10 @@ Sys.time()-ptm
 
 #solution for Z i.e incomethreshold given the headcount index ie percentage of pop
 #z=
-i=7 # austria
-fun.test <-  function(H) anchor[i]*(1-t(1-H)^delta[i]*H^gamma[i] * (delta[i]/(H-1) + gamma[i]/H )  )
-fun.test(0.6)
-curve(fun.test,0.001,0.9999)
+dimnames(selected)[[1]]
+i=match("UGA",dimnames(selected)[[1]]) # change the 3 character to any country
+fun.test <-  function(H) meanlist[i,1]*(1-t(1-H)^delta[i]*H^gamma[i] * (delta[i]/(H-1) + gamma[i]/H )  )
+fun.test(0.697962)/(365)
+curve(fun.test,0.05,0.95)
 
 

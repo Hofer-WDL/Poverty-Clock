@@ -19,5 +19,17 @@ class$region <- factor(as.character(class$region))
 
 class <- data.frame(apply(class,2,function(x) factor(as.character(x))))
 
+class$region2 <- as.character(class$region)
+
+#add the regional dummies to each country
+west <- c("ADO","AUT","BEL","CHI","DNK","FRO","FIN","FRA","DEU","GIB","GRL","ISL","IRL","IMY","ITA","LIE","LUX","MCO","NLD","NOR","PRT","SMR","ESP","SWE","CHE","GBR")
+
+east <- class$ccode[class$region=="Europe & Central Asia" & !class$ccode %in% west]
+
+class$region2[class$ccode %in% west] <- "Western Europe"
+class$region2[class$ccode %in% east] <- "Eastern Europe & Central Asia"
+
+
+class$region2 <- factor(class$region2)
 
 save(class,file = "../Data/WB_class.RData")

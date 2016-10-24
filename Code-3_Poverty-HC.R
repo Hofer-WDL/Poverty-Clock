@@ -12,7 +12,7 @@ library(tidyr)
 library(data.table)
 
 
-
+  
 
 
 #-------------------------------------------------------------------------------------
@@ -132,21 +132,6 @@ beta <- data.frame(beta,a);rm(a)
 
 # Headcountindex----------------------------------------------------------------------
 
-# 
-# fun.fitbeta <- function(anchor){
-#   output <- rep(NA,length(gamma))
-#   for(i in 1:length(gamma)){
-#     f<-function(H)
-#       (theta[i]*H^gamma[i]*(1-H)^delta[i]*(gamma[i]/H - delta[i]/(1-H))-1+ z/anchor[i])
-#     try(temp<-uniroot(f, lower=0.1, upper=0.9, extendInt = "yes")$root, silent=T)
-#     output[i]<-temp}
-#     return(ifelse(is.na(anchor)==TRUE, NA,output))}
-# 
-# 
-# for(j in 1:ncol(meanlist)){
-#   beta[,(3+j)] <- fun.fitbeta(meanlist[,j])}
-
-#####Alternative Better mechanism implement at times
 
 fun.fitbeta <- function(anchor){
  # output <- "failed"  # using "failed instead of NA you can check wheter the root failed or there is just no data but the rest of the code is not built to handle this change
@@ -178,8 +163,19 @@ GQL.hci[,-c(1:3)] <- apply(GQL.hci[,-c(1:3)],2,function(x){x[x<0]<-0;x})
 GQL.hci[,-c(1:3)] <- apply(GQL.hci[,-c(1:3)],2,function(x){x[x>1]<-1;x})
 
 
+
+#####For every country and time that didn't return a root we use the GQ Lorenz curve instead. 
 selected <- beta
-for(i in 1:nrow(meanlist)){if (  any(  is.na( selected[i,] )  )  ){ selected[i,] <- GQL.hci[i,]  }  }
+flag <- data.frame(TID = x$TID,lc_type = "Beta",stringsAsFactors = F)
+for(i in 1:nrow(meanlist)){
+  if (  any(  is.na( selected[i,] )  )  ){flag$lc_type[i] <- "miss"
+  if ( !any(  is.na( GQL.hci[i,] )  )  )    { selected[i,] <- GQL.hci[i,]; flag$lc_type[i] <- "GQ"}}
+  }
+
+selected$lc_type <- flag$lc_type
+#####Check if missings in Beta correspond only to the missings in anchor (dataset x/meanlist)
+
+all.equal(  unname(is.na(meanlist)),unname(is.na(selected[,-c(1:3)])))
 
 
 # Headcounts-----------------------------------------------------------------------
@@ -190,8 +186,8 @@ pop <- subset(data,select = c(paste0("pop.",start:end),"TID","source","data"))
 
 pop <- pop[!duplicated(pop$TID),]
 pop <- pop[match(selected$TID,pop$TID),]
-a <- data.frame(subset(selected,select = c("TID","country","year")) ,subset(pop,select = paste0("pop.",start:end)) * subset(selected,select = paste0("hci.",start:end)))
-names(a)[-c(1:3)] <- paste0("hc.",start:end)
+a <- data.frame(subset(selected,select = c("TID","country","year","lc_type")) ,subset(pop,select = paste0("pop.",start:end)) * subset(selected,select = paste0("hci.",start:end)))
+names(a)[-c(1:4)] <- paste0("hc.",start:end)
 
 poverty.clock <- merge(a, pop, by="TID")
 
@@ -206,7 +202,7 @@ poverty.clock$country <- substring(poverty.clock$country, 1, 3)
 colnames(poverty.clock)[colnames(poverty.clock)=="year"] <- "base.year"
 
 pop <- subset(poverty.clock,select = c("pop.16","pop.30"))
-poverty.clock <- subset(poverty.clock, select=c("country","base.year","source",paste0("hc.",start:end)))
+poverty.clock <- subset(poverty.clock, select=c("country","base.year","source","lc_type",paste0("hc.",start:end)))
 
 rm(list=setdiff(ls(), c("poverty.clock","pop")))
 
@@ -270,9 +266,9 @@ require(countrycode)
 
 poverty.clock <- subset(poverty.clock, !is.na(poverty.clock$hc.16))
 
-write.csv(poverty.clock, file="poverty.clock.csv")
+write.csv(poverty.clock, file="Output/poverty.clock.csv")
 require(xlsx)
 
 poverty.clock <- data.frame(cname = countrycode(poverty.clock$country,origin = "iso3c","country.name"), poverty.clock)
 
-write.xlsx2(poverty.clock,"poverty.clock.xlsx",row.names = F)
+write.xlsx2(poverty.clock,"Output/poverty.clock.xlsx",row.names = F)

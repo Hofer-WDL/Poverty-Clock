@@ -11,7 +11,7 @@ require(reshape)
 load("ENVIRONMENT_Dataframes.RData")
 rm(list=setdiff(ls(),"gdp"))
 source("./R_functions/long_short_trans.R")
-poverty.clock <- read.csv("poverty.clock.csv")
+poverty.clock <- read.csv("Output/poverty.clock.csv")
 names(poverty.clock)[c(2:4)] <- c("ccode","base.year.survey","source.survey")
 
 start <- 2012
@@ -26,7 +26,7 @@ pop$year <- paste0("pop.",pop$year)
 pop <- spread(pop,value = "poptotal", key = "year")
 
 
-gdp <-gdp[!duplicated(gdp$country),-c(1:4)]
+gdp <-gdp[!duplicated(gdp$ccode), c("ccode",paste0("gdp.",start:end))  ]
 
 x <- merge(poverty.clock,pop,by="ccode",all = T)
 y <- merge(x,gdp,by="ccode",all.x=T)
@@ -180,7 +180,7 @@ model5   <- lm(update(formula5,log(hc)~.), data = a[a$hc>1,])
 model6   <- lm(update(formula6,log(hc)~.), data = a[a$hc>1,])
 
 model1.1   <- lm(update(formula1.1,(hc.sh)~.), data = a[a$hc>1,])
-model1.1.p   <- glm(update(formula1.1,(hc.sh/100)~.), data = a[a$hc>1&a$hc.sh>5,],family=binomial(link="probit"))
+#model1.1.p   <- glm(update(formula1.1,(hc.sh/100)~.), data = a[a$hc>1&a$hc.sh>5,],family=binomial(link="probit"))
 
 # reduce model to the years 2012:2014 for our missing gdp countries
 b <- subset(a,year %in% 2012:2014)
@@ -329,7 +329,7 @@ with(t,  data.frame(entering = sum(tik.tak.12.17[tik.tak.12.17>0],na.rm = T),
 
 
 
-write.xlsx2(subset(t,source != "surveys",c("ccode","country","pop_2014","hc_2014","hc.sh_2014","tik.tak.target","tik.tak.12.14","track.12.14","track.12.17")),"regression.xlsx",row.names = F)
+write.xlsx2(subset(t,source != "surveys",c("ccode","country","pop_2014","hc_2014","hc.sh_2014","tik.tak.target","tik.tak.12.14","track.12.14","track.12.17")),"Output/regression.xlsx",row.names = F)
 
 
 
@@ -355,9 +355,9 @@ output$inc.class <- inc.groups.hist$inc.class_2015[match(output$ccode,inc.groups
 output.subset <- subset(output,inc.class!="H"& !is.na(inc.class) & source != "surveys" & pop_2014>200000,select = c( "ccode" , "country","pop_2014","hc_2014","hc.sh_2014", "source","gdp.cap_2014") )
 
 
-write.xlsx2(output,file = "poverty.hc.xlsx",row.names = F)
+write.xlsx2(output,file = "Output/poverty.hc.xlsx",row.names = F)
 
 
-write.xlsx2(output.subset,file = "large_missings.xlsx",row.names = F)
+write.xlsx2(output.subset,file = "Output/large_missings.xlsx",row.names = F)
 #missing.hc$hc12_estimate1.1 <- (model.matrix( formula1 , data=missing.hc)  %*% coef(model1.1))
 
