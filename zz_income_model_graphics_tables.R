@@ -17,6 +17,9 @@ dim(b)
 
 any(is.na(b))
 
+
+
+
 library(foreign)
 library(plyr)
 library(tidyr)
@@ -52,6 +55,11 @@ my.pdf <- function(steps,years=dimnames(b)$time,skip.regional = F){
   
   #convert from an array to a tall DF and subset the years. We went away from subsetting the years at the step "d <-" since if years is of lenght one we loose one dimension of the array and the first differencing command is incorrect. It would be more efficient to do above though
   middle.class <- subset(melt(x),time %in% years.arg)
+  
+  #convert the daily expendiutre numbers into yearly data!
+ middle.class[middle.class$variable =="Total_exp","value"] <-
+   365 * middle.class[middle.class$variable =="Total_exp","value"]
+  
   if(skip.regional){return(middle.class)
   }  else {
     # open a dataset with regional dummies
@@ -66,8 +74,9 @@ my.pdf <- function(steps,years=dimnames(b)$time,skip.regional = F){
 #######################
 # Table 1
 ######################
-middle.class <- my.pdf(c("11","110"),c(2015,2020,2025,2030),F)
-middle.class$value <- middle.class$value/10e5
+middle.class <- my.pdf(steps = c("11","110"),years = c(2015,2020,2025,2030),F)
+middle.class$value <- middle.class$value/1e6
+middle.class$value[middle.class$variable=="Total_exp"] <- middle.class$value[middle.class$variable=="Total_exp"]/1e3
 
 
 # add up all HC and expenditures for each year and for each regional cluster
@@ -81,7 +90,7 @@ agg1 <- data.frame(agg1, SH= apply(agg1[,-1],2,function(x) paste0(round(100*x/x[
 
 addtorow <- list()
 addtorow$pos <- list(0,0)
-addtorow$command <- c(paste0(paste0('& \\multicolumn{2}{c}{', c("Number of People","Consumption"), '}', collapse=''), '\\\\'),paste0(paste0('& \\multicolumn{2}{c}{', c("(millions and global share)","(millions and global share)"), '}', collapse=''), '\\\\'))
+addtorow$command <- c(paste0(paste0('& \\multicolumn{2}{c}{', c("Number of People","Consumption"), '}', collapse=''), '\\\\'),paste0(paste0('& \\multicolumn{2}{c}{', c("(millions and global share)","(billions and global share)"), '}', collapse=''), '\\\\'))
 
 agg1 <- agg1[,c(1,2,4,3,5)]
 print(xtable(agg1 ,digits = c(0,0,0,0,0,0) ),include.rownames=FALSE,add.to.row = addtorow, include.colnames=F)
@@ -105,7 +114,7 @@ middle.class <- my.pdf(steps = c(1.9,11,30,50,70,90,110),years = c("2012","2015"
 BRICI <- c("BRA","RUS","IND","IDN","CHN")
 
 middle.class <- subset(middle.class,country %in% BRICI)
-middle.class$value <- round(middle.class$value/10e5)
+middle.class$value <- round(middle.class$value/1e6)
 
 require(xlsx)
 temp <-  spread((middle.class), key =time,value = value)
@@ -128,7 +137,7 @@ middle.class <- my.pdf(c(11,110),skip.regional =T)
 ggplot(
   subset(middle.class,country %in% BRICI & income_level =="[11,110)" & variable =="HC") ,aes(x=time,y=value,group=country ,color = country)) +
   geom_line(size=1.3)+ ggtitle(  "[11,110)"  )+
-  scale_y_continuous(labels = function(x){x/10e8},name = "Population in Billions")+ scale_x_continuous(name = "Time")+
+  scale_y_continuous(labels = function(x){x/1e9},name = "Population in Billions")+ scale_x_continuous(name = "Time")+
   theme(plot.title = element_text(lineheight=.8,face="bold"),text = element_text(size = 15))+theme_bw()
 
 ggsave("Output/TS_HC_BRICI.png")
@@ -145,14 +154,14 @@ INCHN <- c("CHN","IND")
 # ggplot(
 #   subset(middle.class,country %in% BRARU & variable =="HC") ,aes(x=time,y=value ,linetype = country, color = income_level)) +
 #   geom_line(size=1.3)+ 
-#   scale_y_continuous(labels = function(x){x/10e8},name = "Population in Billions")+ scale_x_continuous(name = "Time")+
+#   scale_y_continuous(labels = function(x){x/1e9},name = "Population in Billions")+ scale_x_continuous(name = "Time")+
 #   theme(plot.title = element_text(lineheight=.8,face="bold"),text = element_text(size = 15))+theme_bw()
 # ggsave("Output/test_TS.png")
 # 
 # middle.class$time <- factor(middle.class$time)
 # ggplot(
 #   subset(middle.class,country %in% "BRA" & variable =="HC" & time %in% c(2015,2030) & income_level != "[0,11)") ,aes(x=income_level,y=value))  + geom_bar(aes(fill = time), position = "dodge", stat="identity")+
-#   scale_y_continuous(labels = function(x){x/10e8},name = "Population in Billions")+
+#   scale_y_continuous(labels = function(x){x/1e9},name = "Population in Billions")+
 #   theme(plot.title = element_text(lineheight=.8,face="bold"),text = element_text(size = 15))+theme_bw()+
 #   ggtitle(  "fehlende dim: Countries"  )
 # ggsave("Output/test1.png")
@@ -160,7 +169,7 @@ INCHN <- c("CHN","IND")
 # middle.class$time <- factor(middle.class$time)
 # ggplot(
 #   subset(middle.class,country %in% BRARU & variable =="HC" & time %in% c(2015,2030) & income_level != "[0,11)") ,aes(x=country,y=value ))  + geom_bar(aes(fill = income_level), position = "dodge", stat="identity")+
-#   scale_y_continuous(labels = function(x){x/10e8},name = "Population in Billions")+
+#   scale_y_continuous(labels = function(x){x/1e9},name = "Population in Billions")+
 #   theme(plot.title = element_text(lineheight=.8,face="bold"),text = element_text(size = 15))+theme_bw()+
 #   ggtitle(  "fehlende dim: Time"  )
 # ggsave("Output/test2.png")
@@ -168,7 +177,7 @@ INCHN <- c("CHN","IND")
 # middle.class$time <- factor(middle.class$time)
 # ggplot(
 #   subset(middle.class,country %in% BRARU & variable =="HC" & time %in% c(2015,2030) & income_level != "[0,11)") ,aes(x=income_level,y=value ))  + geom_bar(aes(fill = country), position = "dodge", stat="identity")+
-#   scale_y_continuous(labels = function(x){x/10e8},name = "Population in Billions")+
+#   scale_y_continuous(labels = function(x){x/1e9},name = "Population in Billions")+
 #   theme(plot.title = element_text(lineheight=.8,face="bold"),text = element_text(size = 15))+theme_bw()+
 #   ggtitle(  "fehlende dim: time"  )
 # ggsave("Output/test3.png")
@@ -176,7 +185,7 @@ INCHN <- c("CHN","IND")
 # middle.class$time <- factor(middle.class$time)
 # ggplot(
 #   subset(middle.class,country %in% "BRA" & variable =="HC" & time %in% c(2015,2030) & income_level != "[0,11)") ,aes(x=income_level,y=value ))  + geom_bar(aes(fill = time), position = "dodge", stat="identity")+
-#   scale_y_continuous(labels = function(x){x/10e8},name = "Population in Billions")+
+#   scale_y_continuous(labels = function(x){x/1e9},name = "Population in Billions")+
 #   theme(plot.title = element_text(lineheight=.8,face="bold"),text = element_text(size = 15))+theme_bw()+
 #   ggtitle(  "fehlende dim: country"   )
 # ggsave("Output/test4.png")
@@ -191,14 +200,14 @@ INCHN <- c("CHN","IND")
 middle.class$time <- factor(middle.class$time)
 ggplot(
   subset(middle.class,country %in% BRARU & variable =="HC" & time %in% c(2015,2030) & income_level != "[0,11)") ,aes(x=country,y=value ))  + geom_bar(aes(fill = time), position = "dodge", stat="identity")+
-  scale_y_continuous(labels = function(x){x/10e8},name = "Population in Billions")+
+  scale_y_continuous(labels = function(x){x/1e9},name = "Population in Billions")+
   theme(plot.title = element_text(lineheight=.8,face="bold"),text = element_text(size = 15))+theme_bw()+ facet_grid(. ~ income_level)
 ggsave("Output/facets1.png")
 
 middle.class$time <- as.numeric(as.character(middle.class$time))
 ggplot(
   subset(middle.class,country %in% BRARU & variable =="HC" & income_level != "[0,11)") ,aes(x=time,y=value ))  + geom_line(aes(color = country))+
-  scale_y_continuous(labels = function(x){x/10e8},name = "Population in Billions")+
+  scale_y_continuous(labels = function(x){x/1e9},name = "Population in Billions")+
   theme(plot.title = element_text(lineheight=.8,face="bold"),text = element_text(size = 15))+theme_bw()+ facet_grid(. ~ income_level)
 ggsave("Output/facets1_TS.png")
 
@@ -206,7 +215,7 @@ ggsave("Output/facets1_TS.png")
 middle.class$time <- factor(middle.class$time)
 ggplot(
   subset(middle.class,country %in% BRARU & variable =="HC" &  time %in% c(2015,2030) & income_level != "[0,11)") ,aes(x = time,y=value ))  + geom_bar(aes(fill = time), position = "dodge", stat="identity")+
-  scale_y_continuous(labels = function(x){x/10e8},name = "Population in Billions")+
+  scale_y_continuous(labels = function(x){x/1e9},name = "Population in Billions")+
   theme(plot.title = element_text(lineheight=.8,face="bold"),text = element_text(size = 15))+theme_bw()+ facet_grid(income_level ~ country)
 ggsave("Output/facets2.png")
 
@@ -222,7 +231,7 @@ ggplot(
             ,subset(middle.class, variable == "HC" & income_level %in%  c("[11,30)","[30,50)","[50,70)","[70,90)","[90,110)")),sum)
   ,aes(x=time,y=value,group=income_level ,color = income_level)) +
   geom_line(size=1.3)+ ggtitle("World")+
-  scale_y_continuous(labels = function(x){x/10e8},name = "Population in Billions")+ scale_x_continuous(name = "Time")+
+  scale_y_continuous(labels = function(x){x/1e9},name = "Population in Billions")+ scale_x_continuous(name = "Time")+
   theme(plot.title = element_text(lineheight=.8,face="bold"),text = element_text(size = 15))+theme_bw()#+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 ggsave("Output/TS_sub_income_levels.png")
 
@@ -238,7 +247,7 @@ ggplot(
   aggregate(value~variable+time+income_level , subset(middle.class, variable == "HC"),sum)
   ,aes(x=time,y=value,group=income_level ,color = income_level)) +
   geom_line(size=1.3)+ ggtitle("")+
-  scale_y_continuous(labels = function(x){x/10e8},name = "Population in Billions")+ scale_x_continuous(name = "Time")+
+  scale_y_continuous(labels = function(x){x/1e9},name = "Population in Billions")+ scale_x_continuous(name = "Time")+
   theme(plot.title = element_text(lineheight=.8,face="bold"),text = element_text(size = 15))+theme_bw()#+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 ggsave("Output/TS_main_income_levels.png")
 
@@ -246,7 +255,7 @@ ggsave("Output/TS_main_income_levels.png")
 
 ##########
 middle.class <- my.pdf( c(1.9,11,30,50,70,90,110), skip.regional = T)
-middle.class$value <- middle.class$value/10e5
+middle.class$value <- middle.class$value/1e6
 middle.class <- spread(aggregate(value~variable+time+income_level , middle.class,sum),key=variable, value = value)
 
 ggplot(middle.class,aes(x=HC,y=Total_exp,shape = income_level,color= time))+
@@ -275,3 +284,21 @@ middle.class$income_level <- as.numeric(middle.class$income_level)
 require(colorplaner)
 ggplot(middle.class,aes(x=HC,y=Total_exp,group = income_level,color= income_level,color2 = time))+
   geom_line()+   scale_color_colorplane()
+
+
+
+
+#######################
+# Table for total world expenditure
+######################
+middle.class <- my.pdf(c("11","110"),c(2016,2020,2025,2030),F)
+middle.class$value <- middle.class$value/1e9
+
+
+# add up all HC and expenditures for each year and for each regional cluster
+agg <- aggregate(formula =value~variable+income_level+time ,data = subset(middle.class,variable == "Total_exp"),FUN = sum)
+
+
+agg1 <- rbind(agg,
+             data.frame(income_level = "[0,INF)",aggregate(value~variable+ time ,subset(middle.class,variable =="Total_exp"),sum)))
+agg1 <-spread(agg1,key = time,value = value) 
