@@ -1,4 +1,4 @@
-t <- try(setwd("E:/Dropbox/World_Data_Lab/Poverty Clock/Data Generation"))
+t <- try(setwd("E:/Drive/WDL_Data/Poverty Clock/Data Generation"))
 if("try-error" %in% class(t)) setwd("C:/Users/hofer/Dropbox/World_Data_Lab/Poverty Clock/Data Generation")
 rm(list=ls())
 require(tidyr)
@@ -23,10 +23,13 @@ load("../Data/poverty.equity.Rdata")
 load("../Data/unuwider.Rdata")
 load("../Data/household_expenditure.RData")
 load("../Data/GNI.Rdata")
+load("../Data/SSD_SOM.Rdata")
 
 povcal$source <- "povcal";        povcal$data <- 1
 poverty.equity$source <- "poverty equity";  poverty.equity$data <- 2
 unuwider$source <- "unuwider"; unuwider$data<- 3
+S$source <- "Utz"; S$data <- 4
+
 
 
 
@@ -69,6 +72,8 @@ x <- x[,-c(66)]
 data <- rbind(data, x)
 rm(x,y,z)
 
+data <- rbind(data,S)
+
 
 # Correct L values (cumulative income share) if L has minor deviations from 1
 data$L <- ifelse(data$L>0.9, 1, data$L)
@@ -76,6 +81,9 @@ data$L <- ifelse(data$L>0.9, 1, data$L)
 
 # order dataframe 
 data <- data[order(data$TID, data$quintile),]
+
+
+
 
 
 
@@ -130,12 +138,38 @@ data <- data.frame(data, (projection(data,"gdp.capita"))       )
 data <- data.frame(data, (projection(data,"cons"))      )
 data <- data.frame(data, (projection(data,"HH.ex.capita")))
 
+
+
+
+
+
+
+#####
+#write a complete gdp and gdp/capita dataframe
+# maybe move this into an extra script as it isn't actually a merge
+# maybe include CIA data here
+load("../Data/gdp.Rdata")
+
+a <- subset(population.io, year %in% c(2012:2030), select=c("ccode","poptotal","year"))
+a$year <- paste0("pop.20",substr(a$year,3,4))
+a <- spread(a,key = "year",value = "poptotal")
+names(a)[1] <- "country"
+gdp_complete <- merge(gdp, a, by="country",all.x = T);rm(a)
+gdp_complete <- gdp_complete[!duplicated(gdp_complete$ccode),-match(c("country","year","ID","gdp.imf"),names(gdp_complete))]
+gdp_complete <- melt(gdp_complete,"ccode")
+gdp_complete  <- separate(gdp_complete,"variable",into = c("var","time"))
+gdp_complete <- spread(gdp_complete,key = var,value = value)
+gdp_complete$gdp.capita <- with(gdp_complete,gdp/pop)
+gdp_complete -> gdp_capita
+#gdp_complete <- gdp_complete %>% melt(c("ccode","time")) %>%  unite(vartime,variable,time, remove = TRUE,sep = ".") %>%  spread(key =vartime,value = value)
+
+
 # gdp/capita
 # a <- subset(data,select = paste0("gdp.",2022:2030))/subset(data,select = paste0("pop.",22:30))
 # names(a) <- paste0("gdp.capita.",2022:2030)
 # data <- cbind(data,a)
 
-load("../Data/gdp.Rdata")
 save(data,file = "../Data/merged_surveys.Rdata")
+save(gdp_capita,file = "../Data/gdp_capita.Rdata")
 
 save.image("../ENVIRONMENT_Dataframes.RData")

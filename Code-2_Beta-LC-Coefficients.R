@@ -1,6 +1,6 @@
-t <- try(setwd("E:/Dropbox/World_Data_Lab/Poverty Clock"))
-if("try-error" %in% class(t)) setwd("C:/Users/hofer/Dropbox/World_Data_Lab/Poverty Clock")
-rm(list=ls())
+# Set working directory and choose between home and work
+t <- try(setwd("E:/Drive/WDL_Data/Poverty Clock"))
+if("try-error" %in% class(t)) setwd("C:/Users/hofer/Google Drive/WDL_Data/Poverty Clock")
 
 load("./Data/merged_surveys.Rdata")
 library(foreign)

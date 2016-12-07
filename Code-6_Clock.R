@@ -1,10 +1,11 @@
 # Set working directory and choose between home and work
-t <- try(setwd("E:/Dropbox/World_Data_Lab/Poverty Clock"))
-if("try-error" %in% class(t)) setwd("C:/Users/hofer/Dropbox/World_Data_Lab/Poverty Clock")
+t <- try(setwd("E:/Drive/WDL_Data/Poverty Clock"))
+if("try-error" %in% class(t)) setwd("C:/Users/hofer/Google Drive/WDL_Data/Poverty Clock")
 rm(list=ls())
 
 load("./Data/imputed.RData")
 load("./Data/popshares.RData")
+load("./Data/WB_class.RData")
 require(reshape2)
 require(tidyr)
 require(lubridate)
@@ -62,8 +63,8 @@ splines[[34]](as.POSIXct("2012-07-01 12:00:00"))
 
 clock <- function(day){
   today <- as.POSIXlt(day)
-  yesterday   <- today;  yesterday$year <- yesterday$year - 1.5 #one and a halfe years ago
-  tomorrow <- today   ;   tomorrow$year <- tomorrow$year + 1.5  #one and a halfe years in the future
+  yesterday   <- today - 31557600*1.5 #one and a halfe years ago
+  tomorrow    <- today + 31557600*1.5 #one and a halfe years in the future
   # yesterday <- today  - 548 * 24 * 60^2 
   # tomorrow <- today   + 548 * 24 * 60^2
   diff <- as.numeric(tomorrow - yesterday) # how many days are in between 
@@ -90,7 +91,7 @@ clock <- function(day){
   performance <- daily_change/daily_target
   daily_track <- as.character(cut(performance,breaks = c(-Inf,0,1,Inf),labels = c("wrong","off","on")))
   #Countries with no extreme poverty
-  no_pov <-  w$hc_2015/w$pop_2015 < 0.015& !is.na(w$hc_2015)
+  no_pov <-  w$hc_2015/w$pop_2015 < 0.01& !is.na(w$hc_2015)
   
   daily_track[no_pov] <- "trivial"  # threshhold of pov/cap in 2015 to indicate trivial countries
 
@@ -106,7 +107,7 @@ clock <- function(day){
   sgd_prediction <-  hc.sgd.start - sgd_daily_change*(time_since_SGD_start)
   global_sgd_prediction <- sum(sgd_prediction,na.rm = T)
   
-  #Use the target rates for countries that arn't on track, the actual change for the ones that are and 0 for the trivials
+  #Use the target rates for countries that aren't on track, the actual change for the ones that are and 0 for the trivials
   everyone_on_track <- NA
   everyone_on_track[daily_track=="on" & !is.na(daily_change)] <- daily_change[daily_track=="on" & !is.na(daily_change)]
   everyone_on_track[(daily_track=="off"| daily_track=="wrong")  & !is.na(daily_change)] <- 
@@ -121,21 +122,53 @@ clock <- function(day){
   
   output2 <-  data.frame(ccode = w$ccode, country = w$country,hc.today,sgd_prediction,daily_change,daily_change_m.a ,daily_change_m.k, daily_change_f.a, daily_change_f.k,daily_target, daily_track)
   #output[no_pov,c("hc.yesterday","hc.today","hc.tomorrow","daily_change","daily_target")] <- 0
-  output2}
+  output2$ahead <- with(output2,-hc.today +  sgd_prediction)
+  global <- apply(output2[,c("hc.today" ,"sgd_prediction", "daily_change","daily_target", "ahead" ) ]
+                  ,2,sum,na.rm=T)
+  list(countries = output2,global = global)}
 
 
 
 ptm <- Sys.time()
 clock(Sys.time())
-ptm - Sys.time()
+Sys.time() -ptm 
 
-head(clock(Sys.time()))
+n <- 20
+output <- rep(NA,n)
+for (i in 1:n){
+  output[i] <- subset(clock(
+    as.character(seq(as.Date("2016-07-02"),as.Date("2030-07-02"),length.out = n)[i])
+  )$countries,ccode =="SSD","daily_track")
+}
+unlist(output)
 
-#total poverty at this second in millions
-sum(clock(Sys.time())[,2],na.rm = T)/10e5
+
+ clock("2016-07-02 00:00")$global
+ clock("2017-07-02 00:00")$global
+ clock("2019-07-02 12:00")$global
+# clock("2019-07-02 00:00")$global
+clock("2028-07-02 00:00")$global
 
 require(xlsx)
 
-write.xlsx2(cbind(w$country,clock( "2016-10-13 10:00:00 CEST" )),file = "Output/maria.xlsx")
+ round(as.numeric(clock("2016-07-01 12:00:00 CEST")$countries[,2])-w$hc_2016,1) # differences come from leap years and the fact that clock() does round 
 
- round(as.numeric(clock("2016-07-01 12:00:00 CEST")[,2])-w$hc_2016,1) # differences come from leap years and the fact that clock() does round 
+
+a <- merge(class[,c("ccode","continent")],clock( "2016-11-30 12:00:00 CEST" )$countries,"ccode",all=T)
+
+a <- subset(a,daily_track != "trivial",select = c("ccode","country","continent","hc.today","daily_track"))
+a <- a[order(a$daily_track,a$continent,a$country),]
+
+
+a <- data.frame(a,pop_2016 = w[match(a$ccode,w$ccode),c(grep("pop_2016",names(w)))])
+
+write.csv2(a,file = "countries_shp/tracks.csv")
+
+write.xlsx2(a,file = "Output/Wolfgang.xlsx",row.names = F)
+
+a$count <- 1
+b <- aggregate(hc.today~continent + daily_track,data = a, FUN = sum)
+b[,3]<-round(b[,3],0)
+b[order(b$continent),]
+
+

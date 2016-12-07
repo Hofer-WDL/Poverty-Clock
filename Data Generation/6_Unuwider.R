@@ -1,4 +1,4 @@
-t <- try(setwd("E:/Dropbox/World_Data_Lab/Poverty Clock/Data Generation"))
+t <- try(setwd("E:/Drive/WDL_Data/Poverty Clock/Data Generation"))
 if("try-error" %in% class(t)) setwd("C:/Users/hofer/Dropbox/World_Data_Lab/Poverty Clock/Data Generation")
 rm(t)
 

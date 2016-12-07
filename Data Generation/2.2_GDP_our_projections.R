@@ -1,7 +1,9 @@
-t <- try(setwd("E:/Dropbox/World_Data_Lab/Poverty Clock/Data Generation"))
+t <- try(setwd("E:/Drive/WDL_Data/Poverty Clock/Data Generation"))
 if("try-error" %in% class(t)) setwd("C:/Users/hofer/Dropbox/World_Data_Lab/Poverty Clock/Data Generation")
 rm(list=ls())
 
+require(reshape2)
+require(tidyr)
 # always run 2.1 GDP first!!
 
 load("../Data/gdp.RData")
@@ -129,5 +131,13 @@ projection <- function(dataframe = data ,variable, avg.timeframe=9,horizon =2030
 }
 
 gdp <- data.frame(gdp,projection(gdp,"gdp"))
+
+
+#####
+#write a complete gdp and gdp/capita dataframe
+# maybe move this into an extra script as it isn't actually a merge
+# maybe include CIA data here
+
+
 
 save(gdp,file = "../Data/gdp.Rdata") 

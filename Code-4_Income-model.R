@@ -1,10 +1,7 @@
-
 # Set working directory and choose between home and work
-t <- try(setwd("E:/Dropbox/World_Data_Lab/Poverty Clock"))
-if("try-error" %in% class(t)) setwd("C:/Users/hofer/Dropbox/World_Data_Lab/Poverty Clock")
+t <- try(setwd("E:/Drive/WDL_Data/Poverty Clock"))
+if("try-error" %in% class(t)) setwd("C:/Users/hofer/Google Drive/WDL_Data/Poverty Clock")
 rm(list=ls())
-
-
 
 load("./ENVIRONMENT_Beta-LC.RDATA")
 library(foreign)
@@ -68,11 +65,11 @@ fun.set.anchor <- function(hierarchy,dataset = data){
 
 #data <- fun.set.anchor(c("HH.ex.capita."),data)
 data <- fun.set.anchor(c("HH.ex.capita.","cons."),data)
+#data <- fun.set.anchor(c("cons.","HH.ex.capita."),data)
 #data <- fun.set.anchor(c("HH.ex.capita.","cons.","svy.mean.","gdp.capita."),data)
 #------------------------------------------------------------------------------------#
 #                           Start of Analysis                                        #
 #------------------------------------------------------------------------------------#
-
 
 
 # Poverty Headcounts
@@ -97,6 +94,12 @@ countrycode(x[is.na(x$anchor.2012),"country"],"iso3c","country.name")
 # Headcount Estimation
 #--------------------------
 
+load("./Data/china_decile.Rdata")
+
+x[x$TID == "CHN_2009_C_total",]$gamma  <- CHN_2009$g
+x[x$TID == "CHN_2009_C_total",]$delta  <- CHN_2009$d
+x[x$TID == "CHN_2009_C_total",]$theta  <- CHN_2009$t
+
 #Coefficients
 gamma<-x$gamma; delta<-x$delta; theta<-x$theta #Beta
 
@@ -120,16 +123,6 @@ beta <- data.frame(beta,a);rm(a)
 
 # Headcountindex----------------------------------------------------------------------
 
-# ols root finding function removed the loop and moved it down to the others
-# fun.fitbeta <- function(anchor,z){
-#   output <- rep(NA,length(gamma))
-#   for(i in 1:length(gamma)){
-#     f<-function(H) 
-#       (theta[i]*H^gamma[i]*(1-H)^delta[i]*(gamma[i]/H - delta[i]/(1-H))-1+ z/anchor[i])
-#     try(temp<-uniroot(f, lower=0.1, upper=0.9, extendInt = "yes")$root, silent=T)
-#     output[i]<-ifelse(temp<0,0,temp)}
-#   return(ifelse(is.na(anchor)==TRUE, NA,output))}
-
 
 fun.fitbeta <- function(anchor, z){
   # output <- "failed"  # using "failed instead of NA you can check wheter the root failed or there is just no data but the rest of the code is not built to handle this change
@@ -139,10 +132,6 @@ fun.fitbeta <- function(anchor, z){
   try(output<-uniroot(f, lower=0.1, upper=0.9, extendInt = "yes")$root, silent=T)
   return(ifelse(is.na(anchor)==TRUE, NA,output))}
 
-
-# for(j in 1:ncol(meanlist)){
-#   for(i in 1: length(gamma)){
-#     beta[i,(3+j)] <- fun.fitbeta(meanlist[i,j])}}
 
 
 # Poverty Gap index----------------------------------------------------------------------
@@ -157,8 +146,8 @@ fun.pov.gap.GQL  <- function(H,b,e,m,n,mean,z){H - (mean/z)*
 pop <- ( subset(x,select = c("country",paste0("pop.",start:end))))
 
 
-income <- c(1.9,11,30,50,70,90,110)
-#income <- (c(seq(1,200,by = 0.1 ),1.9))
+#income <- c(1.9,11,seq(20,110,10))
+income <- seq(0.1,110,by = 0.1 )
 require(countrycode)
 
 income <- sort(unique(income))
@@ -236,14 +225,17 @@ b[,,,"HC","GQL"]  <- apply(b[,,,"HC_index","GQL"] ,3,function(x) x *as.matrix( p
 # mean expenditrue * HC = total expenditure of ppl below the threshold
 for (l in 1: length(index[["LC_type"]])){
   for(k in 1: length(index[[3]])) {
-  b[,,k,"Mean_exp",l]  <- (1-b[,,k,"Pov_gap_index",l]) *index[[3]][k]
+  b[,,k,"Mean_exp",l]  <- (1-b[,,k,"Pov_gap_index",l]/b[,,k,"HC_index",l]) *index[[3]][k]
   b[,,k,"Total_exp",l] <- b[,,k,"HC",l] * b[,,k,"Mean_exp",l]   }}
 
 
-b["ZWE",,,"Mean_exp","GQL"]
+# b["CHN",,c(1:52),"HC","beta"]
+# b["CHN",,c(1:52),"Total_exp","beta"]
+
+b["CHN",,,,"beta"][is.na(b["CHN",,,,"beta"])]  <- 0
 
 
-
+b["CHN","2015",,"HC","GQL"]
 
 ##########Find NAs
 miss <- is.na(b)
@@ -333,12 +325,15 @@ Sys.time()-ptm
 
 
 
-#solution for Z i.e incomethreshold given the headcount index ie percentage of pop
-#z=
-dimnames(selected)[[1]]
-i=match("UGA",dimnames(selected)[[1]]) # change the 3 character to any country
-fun.test <-  function(H) meanlist[i,1]*(1-t(1-H)^delta[i]*H^gamma[i] * (delta[i]/(H-1) + gamma[i]/H )  )
-fun.test(0.697962)/(365)
-curve(fun.test,0.05,0.95)
 
+#solution for Z i.e incomethreshold given the headcount index ie percentage of pop
+
+i=match("BRA",substr(x$TID,1,3)) # change the 3 character to any country
+time <- c(2015,2030)
+fun.test <-  function(H) meanlist[i,(time-2011)]*(1-t(1-H)^delta[i]*H^gamma[i] * (delta[i]/(H-1) + gamma[i]/H )  )
+round(fun.test(0.5)/(365),1)
+
+
+
+curve(fun.test,0.05,0.95)
 

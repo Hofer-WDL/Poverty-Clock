@@ -1,12 +1,13 @@
-t <- try(setwd("E:/Dropbox/World_Data_Lab/Poverty Clock"))
-if("try-error" %in% class(t)) setwd("C:/Users/hofer/Dropbox/World_Data_Lab/Poverty Clock")
-rm(list = ls())
-
+# Set working directory and choose between home and work
+t <- try(setwd("E:/Drive/WDL_Data/Poverty Clock"))
+if("try-error" %in% class(t)) setwd("C:/Users/hofer/Google Drive/WDL_Data/Poverty Clock")
+rm(list=ls())
 
 require(tidyr)
 require(countrycode)
 require(xlsx)
 require(reshape)
+library(mice)
 
 load("ENVIRONMENT_Dataframes.RData")
 rm(list=setdiff(ls(),"gdp"))
@@ -126,7 +127,7 @@ names(b) <- a; rm(a)
 missing.hc.gdp  <- cbind(missing.hc.gdp,b);rm(b)
 
 #### calculate gdp/capita
-yearset <-  substr(names(missing.hc.gdp)[ grep("gdp.",names(missing.hc.gdp))] ,5,8)
+yearset <-  substr(names(missing.hc.gdp)[ grep("gdp.2",names(missing.hc.gdp))] ,5,8)
 a <- subset(missing.hc.gdp,select =  paste0("gdp_",yearset))/subset(missing.hc.gdp,select = paste0("pop_",yearset))
 names(a) <- paste0("gdp.cap_",yearset)
 missing.hc.gdp <- cbind(missing.hc.gdp,a);rm(a)
@@ -160,40 +161,40 @@ missing.hc.gdp <- transform(missing.hc.gdp)
 
 require(stargazer)
 require(glm2)
-
-formula1 <- ~(log(pop)+ gdp.cap )* year
-formula2 <- ~((log(pop)+ gdp.cap )^2)*year
-formula3 <- ~log(pop) * gdp.cap * I(gdp.cap^2) * year
-formula4 <- ~ log(pop)+ log(gdp.cap) + year
-formula5 <- ~(log(pop)+ log(gdp.cap))*year
+# 
+# formula1 <- ~(log(pop)+ gdp.cap )* year
+# formula2 <- ~((log(pop)+ gdp.cap )^2)*year
+# formula3 <- ~log(pop) * gdp.cap * I(gdp.cap^2) * year
+# formula4 <- ~ log(pop)+ log(gdp.cap) + year
+# formula5 <- ~(log(pop)+ log(gdp.cap))*year
 formula6 <- ~log(pop)* log(gdp.cap) *year
 
-formula1.1 <- ~gdp.cap*year
-formula6.1 <- ~log(gdp.cap)*year
+# formula1.1 <- ~gdp.cap*year
+# formula6.1 <- ~log(gdp.cap)*year
 
 # model1   <- lm(update(formula1,log(hc)~.), data = a)
 # model2   <- lm(update(formula2,log(hc)~.), data = a)
 # model3   <- lm(update(formula3,log(hc)~.), data = a)
-model4   <- lm(update(formula4,log(hc)~.), data = a[a$hc>1,])
-model4s   <- lm(update(formula4,log(hc)~.), data = a[a$hc>1,])
-model5   <- lm(update(formula5,log(hc)~.), data = a[a$hc>1,])
+# model4   <- lm(update(formula4,log(hc)~.), data = a[a$hc>1,])
+# model4s   <- lm(update(formula4,log(hc)~.), data = a[a$hc>1,])
+# model5   <- lm(update(formula5,log(hc)~.), data = a[a$hc>1,])
 model6   <- lm(update(formula6,log(hc)~.), data = a[a$hc>1,])
 
-model1.1   <- lm(update(formula1.1,(hc.sh)~.), data = a[a$hc>1,])
+# model1.1   <- lm(update(formula1.1,(hc.sh)~.), data = a[a$hc>1,])
 #model1.1.p   <- glm(update(formula1.1,(hc.sh/100)~.), data = a[a$hc>1&a$hc.sh>5,],family=binomial(link="probit"))
 
 # reduce model to the years 2012:2014 for our missing gdp countries
 b <- subset(a,year %in% 2012:2014)
-model1.2   <- lm(update(formula1,log(hc)~.), data = b[b$hc>1,])
-model2.2   <- lm(update(formula2,log(hc)~.), data = b[b$hc>1,])
-model3.2   <- lm(update(formula3,log(hc)~.), data = b[b$hc>1,])
-model4.2   <- lm(update(formula4,log(hc)~.), data = b[b$hc>1,])
-model5.2   <- lm(update(formula5,log(hc)~.), data = b[b$hc>1,])
+# model1.2   <- lm(update(formula1,log(hc)~.), data = b[b$hc>1,])
+# model2.2   <- lm(update(formula2,log(hc)~.), data = b[b$hc>1,])
+# model3.2   <- lm(update(formula3,log(hc)~.), data = b[b$hc>1,])
+# model4.2   <- lm(update(formula4,log(hc)~.), data = b[b$hc>1,])
+# model5.2   <- lm(update(formula5,log(hc)~.), data = b[b$hc>1,])
 model6.2   <- lm(update(formula6,log(hc)~.), data = b[b$hc>1,])
-
-model6.2.1 <- lm(update(formula6.1,log(hc.sh)~.), data = b[b$hc>1,])
-model1.2.1   <- lm(update(formula1.1,(hc.sh)~.), data = b[b$hc>1,])
-
+# 
+# model6.2.1 <- lm(update(formula6.1,log(hc.sh)~.), data = b[b$hc>1,])
+# model1.2.1   <- lm(update(formula1.1,(hc.sh)~.), data = b[b$hc>1,])
+# 
 
 
 # stargazer(model1,model2,model3,type = "text")
@@ -203,25 +204,25 @@ model1.2.1   <- lm(update(formula1.1,(hc.sh)~.), data = b[b$hc>1,])
 # missing.hc$hc_estimate1 <- exp(model.matrix( formula1 , data=missing.hc)  %*% coef(model1))
 # missing.hc$hc_estimate2 <- exp(model.matrix( formula2, data=missing.hc)  %*% coef(model2))
 # missing.hc$hc_estimate3 <- exp(model.matrix( formula3 , data=missing.hc)  %*% coef(model3))
-missing.hc$hc_estimate4 <- exp(model.matrix( formula4 , data=missing.hc)  %*% coef(model4))
+# missing.hc$hc_estimate4 <- exp(model.matrix( formula4 , data=missing.hc)  %*% coef(model4))
 # missing.hc$h_estimate5 <- exp(model.matrix( formula5 , data=missing.hc)  %*% coef(model5))
 missing.hc$hc_estimate6 <- exp(model.matrix( formula6 , data=missing.hc)  %*% coef(model6))
 
-missing.hc$hc.sh_estimate1.1 <- (model.matrix( formula1.1 , data=missing.hc)  %*% coef(model1.1))
+# missing.hc$hc.sh_estimate1.1 <- (model.matrix( formula1.1 , data=missing.hc)  %*% coef(model1.1))
 
-missing.hc$hc.sh_estimate1.1.p <- pnorm(model.matrix( formula1.1 , data=missing.hc)  %*% coef(model1.1))
+# missing.hc$hc.sh_estimate1.1.p <- pnorm(model.matrix( formula1.1 , data=missing.hc)  %*% coef(model1.1))
 # plot(hc.sh~log(gdp.cap),a[a$hc>1&a$hc.sh>1,],add=T)
 # plot(missing.hc$hc12_estimate1.1.p~log(gdp.cap),missing.hc)
 
 
-missing.hc.gdp$hc_estimate4[!is.na(missing.hc.gdp$gdp.cap)] <- exp(model.matrix( formula4 , data=missing.hc.gdp)  %*% coef(model4.2))
+# missing.hc.gdp$hc_estimate4[!is.na(missing.hc.gdp$gdp.cap)] <- exp(model.matrix( formula4 , data=missing.hc.gdp)  %*% coef(model4.2))
 
 missing.hc.gdp$hc_estimate6[!is.na(missing.hc.gdp$gdp.cap)] <- exp(model.matrix( formula6 , data=missing.hc.gdp)  %*% coef(model6.2))
 
 
 #missing.hc.gdp$hc.sh_estimate6.1[!is.na(missing.hc.gdp$gdp.cap)] <- exp(model.matrix( formula6.1 , data=missing.hc.gdp)  %*% coef(model6.2.1))
 
-missing.hc.gdp$hc.sh_estimate1.2.1[!is.na(missing.hc.gdp$gdp.cap)] <- (model.matrix( formula1.1 , data=missing.hc.gdp)  %*% coef(model1.2.1))
+#missing.hc.gdp$hc.sh_estimate1.2.1[!is.na(missing.hc.gdp$gdp.cap)] <- (model.matrix( formula1.1 , data=missing.hc.gdp)  %*% coef(model1.2.1))
 
 
 
@@ -243,7 +244,18 @@ ggplot(a, aes(x=log(gdp.cap), y=hc.sh,color=source)) +
 a <- a[,- match("source",names(a))]
 
 t <- (melt(a,c("ccode", "country", "year")))
+
+
+# This Data gets used for all later computations
 save(t,file = "./Data/imputed.RData")
+
+
+################################################################
+################################################################
+####Write an output table to print
+################################################################
+################################################################
+
 t <- t%>%  unite(ID, variable,year) %>%spread(ID, value)
 
 
@@ -337,9 +349,6 @@ write.xlsx2(subset(t,source != "surveys",c("ccode","country","pop_2014","hc_2014
 
 
 
-####Write a nice output table to print
-
-#output <- merge(subset(y,select = c("ccode","country","pop.2012","hc.12","gdp.cap.2012")),subset(missing.hc,select = c("ccode","hc12_estimate3","gdp.cap.2012")),by="ccode",all.x = T)
 
 output <- subset(t,select = c("ccode","country","source","pop_2014","pop_2016","hc_2014","hc_2016","hc.sh_2014","hc.sh_2016","gdp.cap_2014","track.16.17","track.12.14","track.12.17","tik.tak.16.17","tik.tak.12.17","tik.tak.12.14","tik.tak.target"))
 

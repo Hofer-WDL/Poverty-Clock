@@ -1,6 +1,6 @@
 # Set working directory and choose between home and work
-t <- try(setwd("E:/Dropbox/World_Data_Lab/Poverty Clock"))
-if("try-error" %in% class(t)) setwd("C:/Users/hofer/Dropbox/World_Data_Lab/Poverty Clock")
+t <- try(setwd("E:/Drive/WDL_Data/Poverty Clock"))
+if("try-error" %in% class(t)) setwd("C:/Users/hofer/Google Drive/WDL_Data/Poverty Clock")
 rm(list=ls())
 
 
@@ -36,7 +36,7 @@ library(data.table)
 
 
                             # Specify Poverty Line
-                               z <- 365*1.90
+                               z <- 365*3.10
 
                                
                                
@@ -57,9 +57,11 @@ fun.set.anchor <- function(hierarchy,dataset = data){
   varlist <- paste0(varlist$Var1,varlist$Var2)
   if ( sum(varlist %in% names(dataset) ) != length(varlist)) warning("Not all Anchor Variables for all years in dataframe")
   output <- data.frame(matrix(NA,nrow=nrow(dataset),ncol=length(start:end)))
+  anch_source <- output
   names(output) <- paste0("anchor.",start:end+2000)
-  for(i in 1:length(hierarchy)){
-    output[is.na(output)] <- subset(dataset,select = paste0(hierarchy[i],start:end+2000))[is.na(output)] }
+    for(i in 1:length(hierarchy)){
+    output[is.na(output)] <- subset(dataset,select = paste0(hierarchy[i],start:end+2000))[is.na(output)]
+    anch_source[is.na(output)] <- hierarchy[i]}
   return(cbind(dataset,output))}
  
 

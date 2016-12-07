@@ -1,4 +1,4 @@
-t <- try(setwd("E:/Dropbox/World_Data_Lab/Poverty Clock/Data Generation"))
+t <- try(setwd("E:/Drive/WDL_Data/Poverty Clock/Data Generation"))
 if("try-error" %in% class(t)) setwd("C:/Users/hofer/Dropbox/World_Data_Lab/Poverty Clock/Data Generation")
 rm(list=ls())
 
@@ -257,7 +257,7 @@ povcal$svy.mean <- povcal$svy.mean*12
 
 
 # svy.mean projection (same growth rate as in imf projections)
-# Note that the gdp.capita variable that is used for this projection already refears to
+# Note that the gdp.capita variable that is used for this projection already refers to
 # the year the survey took place
 end <- strsplit(names(povcal)[tail(grep("gdp.20",names(povcal)),1)],".",fixed = T)[[1]][2] %>% as.numeric
 start <- strsplit(names(povcal)[head(grep("gdp.20",names(povcal)),1)],".",fixed = T)[[1]][2] %>% as.numeric
@@ -287,7 +287,7 @@ povcal <- data.frame(povcal, a);rm(a)
 load("../Data/ipcdata.Rdata")
 povcal <- merge(povcal, ipc.data[, c(1,3)], by="country",all.x = T)
 
-povcal$cons.2012 <- ifelse(is.na(povcal$cons.2012), povcal$svy.mean.2012, povcal$cons.2012)
+#povcal$cons.2012 <- ifelse(is.na(povcal$cons.2012), povcal$svy.mean.2012, povcal$cons.2012)
 povcal$cons.2013 <- povcal$cons.2012 * (povcal$gdp.capita.2013/povcal$gdp.capita.2012)
 povcal$cons.2014 <- povcal$cons.2012 * (povcal$gdp.capita.2014/povcal$gdp.capita.2012)
 povcal$cons.2015 <- povcal$cons.2012 * (povcal$gdp.capita.2015/povcal$gdp.capita.2012)
@@ -300,16 +300,16 @@ povcal$cons.2021 <- povcal$cons.2012 * (povcal$gdp.capita.2021/povcal$gdp.capita
 
 
 # use consumption data instead of survey mean IF survey mean is not available
-povcal$svy.mean.2012 <- ifelse(is.na(povcal$svy.mean.2012), povcal$cons.2012, povcal$svy.mean.2012)
-povcal$svy.mean.2013 <- ifelse(is.na(povcal$svy.mean.2013), povcal$cons.2013, povcal$svy.mean.2013)
-povcal$svy.mean.2014 <- ifelse(is.na(povcal$svy.mean.2014), povcal$cons.2014, povcal$svy.mean.2014)
-povcal$svy.mean.2015 <- ifelse(is.na(povcal$svy.mean.2015), povcal$cons.2015, povcal$svy.mean.2015)
-povcal$svy.mean.2016 <- ifelse(is.na(povcal$svy.mean.2016), povcal$cons.2016, povcal$svy.mean.2016)
-povcal$svy.mean.2017 <- ifelse(is.na(povcal$svy.mean.2017), povcal$cons.2017, povcal$svy.mean.2017)
-povcal$svy.mean.2018 <- ifelse(is.na(povcal$svy.mean.2018), povcal$cons.2018, povcal$svy.mean.2018)
-povcal$svy.mean.2019 <- ifelse(is.na(povcal$svy.mean.2019), povcal$cons.2019, povcal$svy.mean.2019)
-povcal$svy.mean.2020 <- ifelse(is.na(povcal$svy.mean.2020), povcal$cons.2020, povcal$svy.mean.2020)
-povcal$svy.mean.2021 <- ifelse(is.na(povcal$svy.mean.2021), povcal$cons.2021, povcal$svy.mean.2021)
+# povcal$svy.mean.2012 <- ifelse(is.na(povcal$svy.mean.2012), povcal$cons.2012, povcal$svy.mean.2012)
+# povcal$svy.mean.2013 <- ifelse(is.na(povcal$svy.mean.2013), povcal$cons.2013, povcal$svy.mean.2013)
+# povcal$svy.mean.2014 <- ifelse(is.na(povcal$svy.mean.2014), povcal$cons.2014, povcal$svy.mean.2014)
+# povcal$svy.mean.2015 <- ifelse(is.na(povcal$svy.mean.2015), povcal$cons.2015, povcal$svy.mean.2015)
+# povcal$svy.mean.2016 <- ifelse(is.na(povcal$svy.mean.2016), povcal$cons.2016, povcal$svy.mean.2016)
+# povcal$svy.mean.2017 <- ifelse(is.na(povcal$svy.mean.2017), povcal$cons.2017, povcal$svy.mean.2017)
+# povcal$svy.mean.2018 <- ifelse(is.na(povcal$svy.mean.2018), povcal$cons.2018, povcal$svy.mean.2018)
+# povcal$svy.mean.2019 <- ifelse(is.na(povcal$svy.mean.2019), povcal$cons.2019, povcal$svy.mean.2019)
+# povcal$svy.mean.2020 <- ifelse(is.na(povcal$svy.mean.2020), povcal$cons.2020, povcal$svy.mean.2020)
+# povcal$svy.mean.2021 <- ifelse(is.na(povcal$svy.mean.2021), povcal$cons.2021, povcal$svy.mean.2021)
 
 
 rm(list=setdiff(ls(), c("povcal","gdp","population.io","pppconv")))
